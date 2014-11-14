@@ -1,0 +1,363 @@
+function try_swap called 869998 returned 100% blocks executed 87%
+   869998: 1246:try_swap(float t,
+        -: 1247:	 float *cost,
+        -: 1248:	 float *bb_cost,
+        -: 1249:	 float *timing_cost,
+        -: 1250:	 float rlim,
+        -: 1251:	 int place_cost_type,
+        -: 1252:	 float **old_region_occ_x,
+        -: 1253:	 float **old_region_occ_y,
+        -: 1254:	 int num_regions,
+        -: 1255:	 boolean fixed_pins,
+        -: 1256:	 enum e_place_algorithm place_algorithm,
+        -: 1257:	 float timing_tradeoff,
+        -: 1258:	 float inverse_prev_bb_cost,
+        -: 1259:	 float inverse_prev_timing_cost,
+        -: 1260:	 float *delay_cost,
+        -: 1261:	 int *x_lookup)
+        -: 1262:{
+        -: 1263:
+        -: 1264:    /* Picks some block and moves it to another spot.  If this spot is   *
+        -: 1265:     * occupied, switch the blocks.  Assess the change in cost function  *
+        -: 1266:     * and accept or reject the move.  If rejected, return 0.  If        *
+        -: 1267:     * accepted return 1.  Pass back the new value of the cost function. * 
+        -: 1268:     * rlim is the range limiter.                                                                            */
+        -: 1269:
+        -: 1270:    int b_from, x_to, y_to, z_to, x_from, y_from, z_from, b_to;
+        -: 1271:    int i, k, inet, keep_switch, num_of_pins, max_pins_per_fb;
+        -: 1272:    int num_nets_affected, bb_index;
+        -: 1273:    float delta_c, bb_delta_c, timing_delta_c, delay_delta_c, newcost;
+        -: 1274:    static struct s_bb *bb_coord_new = NULL;
+        -: 1275:    static struct s_bb *bb_edge_new = NULL;
+        -: 1276:    static int *nets_to_update = NULL, *net_block_moved = NULL;
+        -: 1277:
+   869998: 1278:    max_pins_per_fb = 0;
+  4349990: 1279:    for(i = 0; i < num_types; i++)
+branch  0 taken 80%
+branch  1 taken 20% (fallthrough)
+        -: 1280:	{
+  3479992: 1281:	    max_pins_per_fb =
+  3479992: 1282:		max(max_pins_per_fb, type_descriptors[i].num_pins);
+        -: 1283:	}
+        -: 1284:
+        -: 1285:    /* Allocate the local bb_coordinate storage, etc. only once. */
+        -: 1286:
+   869998: 1287:    if(bb_coord_new == NULL)
+branch  0 taken 1% (fallthrough)
+branch  1 taken 99%
+        -: 1288:	{
+        1: 1289:	    bb_coord_new = (struct s_bb *)my_malloc(2 * max_pins_per_fb *
+call    0 returned 100%
+        -: 1290:						    sizeof(struct s_bb));
+        1: 1291:	    bb_edge_new = (struct s_bb *)my_malloc(2 * max_pins_per_fb *
+call    0 returned 100%
+        -: 1292:						   sizeof(struct s_bb));
+        1: 1293:	    nets_to_update =
+        1: 1294:		(int *)my_malloc(2 * max_pins_per_fb * sizeof(int));
+call    0 returned 100%
+        1: 1295:	    net_block_moved =
+        1: 1296:		(int *)my_malloc(2 * max_pins_per_fb * sizeof(int));
+call    0 returned 100%
+        -: 1297:	}
+        -: 1298:
+        -: 1299:
+   869998: 1300:    delay_delta_c = 0.0;
+   869998: 1301:    b_from = my_irand(num_blocks - 1);
+call    0 returned 100%
+        -: 1302:
+        -: 1303:    /* If the pins are fixed we never move them from their initial    *
+        -: 1304:     * random locations.  The code below could be made more efficient *
+        -: 1305:     * by using the fact that pins appear first in the block list,    *
+        -: 1306:     * but this shouldn't cause any significant slowdown and won't be *
+        -: 1307:     * broken if I ever change the parser so that the pins aren't     *
+        -: 1308:     * necessarily at the start of the block list.                    */
+        -: 1309:
+   869998: 1310:    if(fixed_pins == TRUE)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -: 1311:	{
+    #####: 1312:	    while(block[b_from].type == IO_TYPE)
+branch  0 never executed
+branch  1 never executed
+        -: 1313:		{
+    #####: 1314:		    b_from = my_irand(num_blocks - 1);
+call    0 never executed
+        -: 1315:		}
+        -: 1316:	}
+        -: 1317:
+   869998: 1318:    x_from = block[b_from].x;
+   869998: 1319:    y_from = block[b_from].y;
+   869998: 1320:    z_from = block[b_from].z;
+        -: 1321:
+   869998: 1322:    if(!find_to
+branch  0 taken 97% (fallthrough)
+branch  1 taken 3%
+   869998: 1323:       (x_from, y_from, block[b_from].type, rlim, x_lookup, &x_to, &y_to))
+call    0 returned 100%
+        -: 1324:	return FALSE;
+        -: 1325:
+        -: 1326:    /* Make the switch in order to make computing the new bounding *
+        -: 1327:     * box simpler.  If the cost increase is too high, switch them *
+        -: 1328:     * back.  (block data structures switched, clbs not switched   *
+        -: 1329:     * until success of move is determined.)                       */
+        -: 1330:
+   848146: 1331:    z_to = 0;
+   848146: 1332:    if(grid[x_to][y_to].type->capacity > 1)
+branch  0 taken 47% (fallthrough)
+branch  1 taken 53%
+        -: 1333:	{
+   397393: 1334:	    z_to = my_irand(grid[x_to][y_to].type->capacity - 1);
+call    0 returned 100%
+        -: 1335:	}
+   848146: 1336:    if(grid[x_to][y_to].blocks[z_to] == EMPTY)
+branch  0 taken 21% (fallthrough)
+branch  1 taken 79%
+        -: 1337:	{			/* Moving to an empty location */
+   177570: 1338:	    b_to = EMPTY;
+   177570: 1339:	    block[b_from].x = x_to;
+   177570: 1340:	    block[b_from].y = y_to;
+   177570: 1341:	    block[b_from].z = z_to;
+        -: 1342:	}
+        -: 1343:    else
+        -: 1344:	{			/* Swapping two blocks */
+   670576: 1345:	    b_to = grid[x_to][y_to].blocks[z_to];
+   670576: 1346:	    block[b_to].x = x_from;
+   670576: 1347:	    block[b_to].y = y_from;
+   670576: 1348:	    block[b_to].z = z_from;
+        -: 1349:
+   670576: 1350:	    block[b_from].x = x_to;
+   670576: 1351:	    block[b_from].y = y_to;
+   670576: 1352:	    block[b_from].z = z_to;
+        -: 1353:	}
+        -: 1354:
+        -: 1355:    /* Now update the cost function.  May have to do major optimizations *
+        -: 1356:     * here later.                                                       */
+        -: 1357:
+        -: 1358:    /* I'm using negative values of temp_net_cost as a flag, so DO NOT   *
+        -: 1359:     * use cost functions that can go negative.                          */
+        -: 1360:
+   848146: 1361:    delta_c = 0;		/* Change in cost due to this swap. */
+   848146: 1362:    bb_delta_c = 0;
+   848146: 1363:    timing_delta_c = 0;
+        -: 1364:
+   848146: 1365:    num_of_pins = block[b_from].type->num_pins;
+        -: 1366:
+   848146: 1367:    num_nets_affected = find_affected_nets(nets_to_update, net_block_moved,
+call    0 returned 100%
+        -: 1368:					   b_from, b_to, num_of_pins);
+        -: 1369:
+   848146: 1370:    if(place_cost_type == NONLINEAR_CONG)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -: 1371:	{
+    #####: 1372:	    save_region_occ(old_region_occ_x, old_region_occ_y, num_regions);
+call    0 never executed
+        -: 1373:	}
+        -: 1374:
+        -: 1375:    bb_index = 0;		/* Index of new bounding box. */
+        -: 1376:
+ 17007588: 1377:    for(k = 0; k < num_nets_affected; k++)
+branch  0 taken 95%
+branch  1 taken 5% (fallthrough)
+        -: 1378:	{
+ 17007588: 1379:	    inet = nets_to_update[k];
+        -: 1380:
+        -: 1381:	    /* If we swapped two blocks connected to the same net, its bounding box *
+        -: 1382:	     * doesn't change.                                                      */
+        -: 1383:
+ 17007588: 1384:	    if(net_block_moved[k] == FROM_AND_TO)
+branch  0 taken 8% (fallthrough)
+branch  1 taken 92%
+  1370823: 1385:		continue;
+        -: 1386:
+ 15636765: 1387:	    if(net[inet].num_sinks < SMALL_NET)
+branch  0 taken 81% (fallthrough)
+branch  1 taken 19%
+        -: 1388:		{
+ 12628718: 1389:		    get_non_updateable_bb(inet, &bb_coord_new[bb_index]);
+call    0 returned 100%
+        -: 1390:		}
+        -: 1391:	    else
+        -: 1392:		{
+  3008047: 1393:		    if(net_block_moved[k] == FROM)
+branch  0 taken 53% (fallthrough)
+branch  1 taken 47%
+  3173710: 1394:			update_bb(inet, &bb_coord_new[bb_index],
+call    0 returned 100%
+  1586855: 1395:				  &bb_edge_new[bb_index], x_from, y_from,
+        -: 1396:				  x_to, y_to);
+        -: 1397:		    else
+  2842384: 1398:			update_bb(inet, &bb_coord_new[bb_index],
+call    0 returned 100%
+  1421192: 1399:				  &bb_edge_new[bb_index], x_to, y_to, x_from,
+        -: 1400:				  y_from);
+        -: 1401:		}
+        -: 1402:
+ 15636765: 1403:	    if(place_cost_type != NONLINEAR_CONG)
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -: 1404:		{
+ 31273530: 1405:		    temp_net_cost[inet] =
+ 15636765: 1406:			get_net_cost(inet, &bb_coord_new[bb_index]);
+call    0 returned 100%
+ 15636765: 1407:		    bb_delta_c += temp_net_cost[inet] - net_cost[inet];
+        -: 1408:		}
+        -: 1409:	    else
+        -: 1410:		{
+        -: 1411:		    /* Rip up, then replace with new bb. */
+    #####: 1412:		    update_region_occ(inet, &bb_coords[inet], -1,
+call    0 never executed
+        -: 1413:				      num_regions);
+    #####: 1414:		    update_region_occ(inet, &bb_coord_new[bb_index], 1,
+call    0 never executed
+        -: 1415:				      num_regions);
+        -: 1416:		}
+        -: 1417:
+ 15636765: 1418:	    bb_index++;
+        -: 1419:	}
+        -: 1420:
+   848146: 1421:    if(place_cost_type == NONLINEAR_CONG)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -: 1422:	{
+    #####: 1423:	    newcost = nonlinear_cong_cost(num_regions);
+call    0 never executed
+    #####: 1424:	    bb_delta_c = newcost - *bb_cost;
+        -: 1425:	}
+        -: 1426:
+        -: 1427:
+   848146: 1428:    if(place_algorithm == NET_TIMING_DRIVEN_PLACE ||
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -: 1429:       place_algorithm == PATH_TIMING_DRIVEN_PLACE)
+        -: 1430:	{
+        -: 1431:	    /*in this case we redefine delta_c as a combination of timing and bb.  *
+        -: 1432:	     *additionally, we normalize all values, therefore delta_c is in       *
+        -: 1433:	     *relation to 1*/
+        -: 1434:
+   848146: 1435:	    comp_delta_td_cost(b_from, b_to, num_of_pins, &timing_delta_c,
+call    0 returned 100%
+        -: 1436:			       &delay_delta_c);
+        -: 1437:
+   848146: 1438:	    delta_c =
+   848146: 1439:		(1 - timing_tradeoff) * bb_delta_c * inverse_prev_bb_cost +
+   848146: 1440:		timing_tradeoff * timing_delta_c * inverse_prev_timing_cost;
+        -: 1441:	}
+        -: 1442:    else
+        -: 1443:	{
+        -: 1444:	    delta_c = bb_delta_c;
+        -: 1445:	}
+        -: 1446:
+        -: 1447:
+   848146: 1448:    keep_switch = assess_swap(delta_c, t);
+call    0 returned 100%
+        -: 1449:
+        -: 1450:    /* 1 -> move accepted, 0 -> rejected. */
+        -: 1451:
+   848146: 1452:    if(keep_switch)
+branch  0 taken 54% (fallthrough)
+branch  1 taken 46%
+        -: 1453:	{
+   386965: 1454:	    *cost = *cost + delta_c;
+   386965: 1455:	    *bb_cost = *bb_cost + bb_delta_c;
+        -: 1456:
+        -: 1457:
+   386965: 1458:	    if(place_algorithm == NET_TIMING_DRIVEN_PLACE ||
+branch  0 taken 100% (fallthrough)
+branch  1 taken 0%
+        -: 1459:	       place_algorithm == PATH_TIMING_DRIVEN_PLACE)
+        -: 1460:		{
+        -: 1461:		    /*update the point_to_point_timing_cost and point_to_point_delay_cost 
+        -: 1462:		     * values from the temporary values */
+   386965: 1463:		    *timing_cost = *timing_cost + timing_delta_c;
+   386965: 1464:		    *delay_cost = *delay_cost + delay_delta_c;
+        -: 1465:
+   386965: 1466:		    update_td_cost(b_from, b_to, num_of_pins);
+call    0 returned 100%
+        -: 1467:		}
+        -: 1468:
+        -: 1469:	    /* update net cost functions and reset flags. */
+        -: 1470:
+        -: 1471:	    bb_index = 0;
+        -: 1472:
+  3819743: 1473:	    for(k = 0; k < num_nets_affected; k++)
+branch  0 taken 91%
+branch  1 taken 9% (fallthrough)
+        -: 1474:		{
+  3819743: 1475:		    inet = nets_to_update[k];
+        -: 1476:
+        -: 1477:		    /* If we swapped two blocks connected to the same net, its bounding box *
+        -: 1478:		     * doesn't change.                                                      */
+        -: 1479:
+  3819743: 1480:		    if(net_block_moved[k] == FROM_AND_TO)
+branch  0 taken 7% (fallthrough)
+branch  1 taken 93%
+        -: 1481:			{
+   249425: 1482:			    temp_net_cost[inet] = -1;
+   249425: 1483:			    continue;
+        -: 1484:			}
+        -: 1485:
+  3570318: 1486:		    bb_coords[inet] = bb_coord_new[bb_index];
+  3570318: 1487:		    if(net[inet].num_sinks >= SMALL_NET)
+branch  0 taken 22% (fallthrough)
+branch  1 taken 78%
+   780989: 1488:			bb_num_on_edges[inet] = bb_edge_new[bb_index];
+        -: 1489:
+  3570318: 1490:		    bb_index++;
+        -: 1491:
+  3570318: 1492:		    net_cost[inet] = temp_net_cost[inet];
+  3570318: 1493:		    temp_net_cost[inet] = -1;
+        -: 1494:		}
+        -: 1495:
+        -: 1496:	    /* Update fb data structures since we kept the move. */
+        -: 1497:	    /* Swap physical location */
+   386965: 1498:	    grid[x_to][y_to].blocks[z_to] = b_from;
+   386965: 1499:	    grid[x_from][y_from].blocks[z_from] = b_to;
+        -: 1500:
+   386965: 1501:	    if(EMPTY == b_to)
+branch  0 taken 34% (fallthrough)
+branch  1 taken 66%
+        -: 1502:		{		/* Moved to an empty location */
+   130769: 1503:		    grid[x_to][y_to].usage++;
+   130769: 1504:		    grid[x_from][y_from].usage--;
+        -: 1505:		}
+        -: 1506:	}
+        -: 1507:
+        -: 1508:    else
+        -: 1509:	{			/* Move was rejected.  */
+        -: 1510:
+        -: 1511:	    /* Reset the net cost function flags first. */
+ 13187845: 1512:	    for(k = 0; k < num_nets_affected; k++)
+branch  0 taken 97%
+branch  1 taken 3% (fallthrough)
+        -: 1513:		{
+ 13187845: 1514:		    inet = nets_to_update[k];
+ 13187845: 1515:		    temp_net_cost[inet] = -1;
+        -: 1516:		}
+        -: 1517:
+        -: 1518:	    /* Restore the block data structures to their state before the move. */
+   461181: 1519:	    block[b_from].x = x_from;
+   461181: 1520:	    block[b_from].y = y_from;
+   461181: 1521:	    block[b_from].z = z_from;
+   461181: 1522:	    if(b_to != EMPTY)
+branch  0 taken 90% (fallthrough)
+branch  1 taken 10%
+        -: 1523:		{
+   414380: 1524:		    block[b_to].x = x_to;
+   414380: 1525:		    block[b_to].y = y_to;
+   414380: 1526:		    block[b_to].z = z_to;
+        -: 1527:		}
+        -: 1528:
+        -: 1529:	    /* Restore the region occupancies to their state before the move. */
+   461181: 1530:	    if(place_cost_type == NONLINEAR_CONG)
+branch  0 taken 0% (fallthrough)
+branch  1 taken 100%
+        -: 1531:		{
+    #####: 1532:		    restore_region_occ(old_region_occ_x, old_region_occ_y,
+call    0 never executed
+        -: 1533:				       num_regions);
+        -: 1534:		}
+        -: 1535:	}
+        -: 1536:
+        -: 1537:    return (keep_switch);
+        -: 1538:}

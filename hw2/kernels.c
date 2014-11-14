@@ -1,0 +1,215 @@
+/********************************************************
+ * Kernels to be optimized for the CS:APP Performance Lab
+*******************************************************/
+#include <stdio.h>
+#include <stdlib.h>
+#include "defs.h"
+
+/* 
+ * ECE454 Students: 
+ * Please fill in the following team struct 
+ */
+team_t team = {
+    "HUEHUEHUE",              /* Team name */
+
+    "Arthur Borges de Oliveira Sousa",     /* First member full name */
+    "arthur.borgesdeoliveirasousa@mail.utoronto.ca",  /* First member email address */
+
+    "Vinicius Dantas de Lima Melo",                   /* Second member full name (leave blank if none) */
+    "vinicius.dantasdelimamelo@mail.utoronto.ca"                    /* Second member email addr (leave blank if none) */
+};
+
+/***************
+ * ROTATE KERNEL
+ ***************/
+
+/******************************************************
+ * Your different versions of the rotate kernel go here
+ ******************************************************/
+
+/* 
+ * naive_rotate - The naive baseline version of rotate 
+ */
+char naive_rotate_descr[] = "naive_rotate: Naive baseline implementation";
+void naive_rotate(int dim, pixel *src, pixel *dst) 
+{
+    int i, j;
+
+    for (i = 0; i < dim; i++)
+    for (j = 0; j < dim; j++)
+        dst[RIDX(dim-1-j, i, dim)] = src[RIDX(i, j, dim)];
+}
+
+/*
+ * ECE 454 Students: Write your rotate functions here:
+ */ 
+
+/* 
+ * rotate - Your current working version of rotate
+ * IMPORTANT: This is the version you will be graded on
+ */
+ // #define RIDX(i,j,n) ((i)*(n)+(j))
+#define min(a,b) ((a< b) ? a : b)
+char rotate_descr[] = "rotate: Current working version";
+void rotate(int dim, pixel *src, pixel *dst)
+{
+        const int T1 = 32, T2= 16; // 32, 16
+        int i, j, ii, jj, n1, n2;
+
+        for (i = 0; i < dim; i+=T1)
+        {
+                for (j = 0; j < dim; j+=T2)
+                {
+			n1 = dim*(dim-1-i);
+                        for(ii = i; ii < min(i+T1, dim); ++ii, n1 -= dim)
+                        {
+				n2 = j*dim;
+                                for(jj = j; jj < min(j + T2, dim); ++jj, n2+=dim)
+                                {
+                                        dst[n1+jj] = src[n2+ii];
+                                }
+                        }
+                }
+        }
+}
+
+char rotate_tryhard_descr[] = "rotate: tryhard working version";
+#define l1_lines 8 
+void rotate_tryhard(int dim, pixel *src, pixel *dst)
+{
+
+    const int step = min(128, dim);
+
+    int offx, offy, i, j;
+    for (offx = 0; offx < dim; offx += step)
+        for (offy = 0; offy < dim; offy = offy + l1_lines){
+            const int maxJ = min(step, dim - offx);
+            const int maxI = min(l1_lines, dim - offy);
+            const pixel* baseSrc = src + offy * dim + offx;
+            pixel* baseDst = dst + (dim - offx - 1) * dim + offy;
+            for(j = 0; j < maxJ; ++j){
+                   for(i = 0; i < maxI; ++i)
+                    baseDst[i - j * dim] = baseSrc[j + i * dim];
+            }
+        }
+}
+
+/* 
+ * Second attempt: Inversed order
+*/
+char rotate_two_descr[] = "Second attempt: inversed order";
+void attempt_two(int dim, pixel *src, pixel *dst) 
+{
+        int i, j;
+
+	for (i = 0; i < dim; ++i)
+        {
+                for (j = 0; j < dim; ++j)
+                {
+                        dst[RIDX(dim-1-i, j, dim)] = src[RIDX(j, i, dim)];
+                }
+        }
+}
+
+/*
+* Third attempt: Tiling
+*/
+#define min(a,b) ((a < b) ? (a) : (b))
+char rotate_three_descr[] = "Third attempt: tiling";
+void attempt_three(int dim, pixel *src, pixel *dst)
+{
+        const int T = 8;
+        int i, j, ii, jj;
+
+        for (i = 0; i < dim; i+=T)
+        {
+                for (j = 0; j < dim; j+=T)
+                {
+                        for(ii = i; ii < min(i+T, dim); ++ii)
+                        {
+                                for(jj = j; jj < min(j + T, dim); ++jj)
+                                {
+                                        dst[(dim-1-ii)*dim+jj] = src[jj*dim+ii];
+                                }
+                        }
+                }
+        }
+}
+
+/*
+* Fourth attempt: Tiling v2
+*/
+char rotate_four_descr[] = "Fourth attempt: tiling v2";
+void attempt_four(int dim, pixel *src, pixel *dst)
+{
+        const int T = 16;
+        int i, j, ii, jj;
+
+        for (i = 0; i < dim; i+=T)
+        {
+                for (j = 0; j < dim; j+=T)
+                {
+                        for(ii = i; ii < min(i+T, dim); ++ii)
+                        {
+                                for(jj = j; jj < min(j + T, dim); ++jj)
+                                {
+                                        dst[(dim-1-ii)*dim+jj] = src[jj*dim+ii];
+                                }
+                        }
+                }
+        }
+}
+
+/*
+* Fifth attempt: Tiling + code motion
+*/
+char rotate_five_descr[] = "Fifth attempt: Tiling + code motion";
+void attempt_five(int dim, pixel *src, pixel *dst)
+{
+        const int T = 16;
+        int i, j, ii, jj, n1, n2;
+
+        for (i = 0; i < dim; i+=T)
+        {
+                for (j = 0; j < dim; j+=T)
+                {
+                        n1 = dim*(dim-1-i);
+                        for(ii = i; ii < min(i+T, dim); ++ii, n1 -= dim)
+                        {
+                                n2 = j*dim;
+                                for(jj = j; jj < min(j + T, dim); ++jj, n2+=dim)
+                                {
+                                        dst[n1+jj] = src[n2+ii];
+                                }
+                        }
+                }
+        }
+}
+/*********************************************************************
+ * register_rotate_functions - Register all of your different versions
+ *     of the rotate kernel with the driver by calling the
+ *     add_rotate_function() for each test function. When you run the
+ *     driver program, it will test and report the performance of each
+ *     registered test function.  
+ *********************************************************************/
+
+void register_rotate_functions() 
+{
+    add_rotate_function(&naive_rotate, naive_rotate_descr);   
+    add_rotate_function(&rotate, rotate_descr);   
+
+    //add_rotate_function(&attempt_two, rotate_two_descr);   
+    //add_rotate_function(&attempt_three, rotate_three_descr);   
+    //add_rotate_function(&attempt_four, rotate_four_descr);   
+    //add_rotate_function(&attempt_five, rotate_five_descr);
+    add_rotate_function(&rotate_tryhard, rotate_tryhard_descr);   
+    //add_rotate_function(&attempt_six, rotate_six_descr);   
+    //add_rotate_function(&attempt_seven, rotate_seven_descr);   
+    //add_rotate_function(&attempt_eight, rotate_eight_descr);   
+    //add_rotate_function(&attempt_nine, rotate_nine_descr);   
+    //add_rotate_function(&attempt_ten, rotate_ten_descr);   
+    //add_rotate_function(&attempt_eleven, rotate_eleven_descr);   
+
+    /* ... Register additional rotate functions here */
+}
+
