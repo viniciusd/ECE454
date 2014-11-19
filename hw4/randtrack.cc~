@@ -130,7 +130,6 @@ main (int argc, char* argv[]){
   h.print();
 }
 
-/*
   void *thread_start_routine(void *pthreadId)
   {
     // long ptId;
@@ -159,4 +158,4 @@ main (int argc, char* argv[]){
      }
 
      //pthread_exit(NULL);
-  } */
+  }
