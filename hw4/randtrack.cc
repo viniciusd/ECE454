@@ -1,7 +1,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 
 #include "defs.h"
 #include "hash.h"
@@ -26,8 +25,6 @@ team_t team = {
     "vinicius.dantasdelimamelo@mail.utoronto.ca"                            /* Second member email address */
 };
 
-void *thread_start_routine(void *pthreadId);
-
 unsigned num_threads;
 unsigned samples_to_skip;
 
@@ -44,6 +41,7 @@ class sample {
   void print(FILE *f){printf("%d %d\n",my_key,count);}
 };
 
+int rnum;
 // This instantiates an empty hash table
 // it is a C++ template, which means we define the types for
 // the element and key value here: element is "class sample" and
@@ -53,7 +51,7 @@ hash<sample,unsigned> h;
 int  
 main (int argc, char* argv[]){
   int i,j,k;
-  int rnum;
+
   unsigned key;
   sample *s;
 
@@ -80,6 +78,7 @@ main (int argc, char* argv[]){
   // initialize a 16K-entry (2**14) hash of empty lists
   h.setup(14);
  
+  /*
   if(num_threads>0){
 
                  pthread_t pool_wkthreads[num_threads];
@@ -90,8 +89,6 @@ main (int argc, char* argv[]){
                 for(i=0; i< (num_threads); i++){
 
                     printf("creating thread %ld\n", i);
-
-
                     tc = pthread_create(&pool_wkthreads[i], NULL,thread_start_routine, (void *)i);
 
                     if (tc){
@@ -100,59 +97,67 @@ main (int argc, char* argv[]){
                     }
                }
 
+  }*/
+
+  // process streams starting with different initial numbers
+  for (i=0; i<NUM_SEED_STREAMS; i++){
+    rnum = i;
+
+    // collect a number of samples
+    for (j=0; j<SAMPLES_TO_COLLECT; j++){
+
+      // skip a number of samples
+      for (k=0; k<samples_to_skip; k++){
+	rnum = rand_r((unsigned int*)&rnum);
+      }
+
+      // force the sample to be within the range of 0..RAND_NUM_UPPER_BOUND-1
+      key = rnum % RAND_NUM_UPPER_BOUND;
+
+      // if this sample has not been counted before
+      if (!(s = h.lookup(key))){
+	
+	// insert a new element for it into the hash table
+	s = new sample(key);
+	h.insert(s);
+      }
+
+      // increment the count for the sample
+      s->count++;
+    }
   }
 
   // print a list of the frequency of all samples
   h.print();
-
 }
 
-
+/*
   void *thread_start_routine(void *pthreadId)
   {
+    // long ptId;
+    // ptId = (long)pthreadId;
+    // printf("Thread %ld created\n", ptId);
 
-  	    int i,j,k;
-            int rnum;
-            unsigned key;
-            sample *s;
+     while(1){
 
-	    long ptId;
-	    ptId = (long)pthreadId;
-	    printf("Thread %ld created\n", ptId);
+  	   pthread_mutex_lock(&mutex_aux);
 
+  	   while (aux_count == 0) { //meaning that I don`t have nothing in the buffer
+  	       pthread_cond_wait(&notempty,&mutex_aux); // it should wait until is not empty( producer produced something)
+  	   }
 
-	   while(1){
+  	   int temp =  buffer[out];
 
-		 	  // process streams starting with different initial numbers
-			  for (i=(NUM_SEED_STREAMS/num_threads)*ptId; i<(NUM_SEED_STREAMS/num_threads)*(ptId+1); i++){
-			    rnum = i;
+  	   if (aux_count <= sv->max_requests){
+   		   pthread_cond_signal(&notfull); //wake up producer to add more requests in the buffer
+  	   }
+             out = (out +1)% sv->max_requests;
 
-				    // collect a number of samples
-				    for (j=0; j<SAMPLES_TO_COLLECT; j++){
+             aux_count--;
+  	   pthread_mutex_unlock(&mutex_aux);
+            do_server_request(sv, temp);
 
-					      // skip a number of samples
-					      for (k=0; k<samples_to_skip; k++){
-						rnum = rand_r((unsigned int*)&rnum);
-					      }
+     }
 
-					      // force the sample to be within the range of 0..RAND_NUM_UPPER_BOUND-1
-					      key = rnum % RAND_NUM_UPPER_BOUND;
-
-					      // if this sample has not been counted before
-					      if (!(s = h.lookup(key))){
-	
-						// insert a new element for it into the hash table
-						s = new sample(key);
-						h.insert(s);
-					      }
-
-					      // increment the count for the sample
-					      s->count++;
-				    }
-
-               		 }
-	     }
-
-        //caso queira otimizar, fa;a as threads pegando os processos em alternado
-
-  } 
+     //pthread_exit(NULL);
+  } */

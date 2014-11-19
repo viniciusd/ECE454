@@ -4,8 +4,8 @@ CFLAGS = -g
 
 all: randtrack 
 
-randtrack: list.h hash.h defs.h randtrack.cc
-	$(CC) $(CFLAGS) randtrack.cc -lpthread -fgnu-tm -o randtrack
+randtrack: list.h hash.h defs.h randtrack_global_lock.cc
+	$(CC) $(CFLAGS) randtrack_global_lock.cc -lpthread -fgnu-tm -o randtrack
 
 
 clean:

@@ -27,7 +27,6 @@ team_t team = {
 };
 
 void *thread_start_routine(void *pthreadId);
-pthread_mutex_t global_lock = PTHREAD_MUTEX_INITIALIZER;
 
 unsigned num_threads;
 unsigned samples_to_skip;
@@ -51,12 +50,10 @@ class sample {
 // key value is "unsigned".  
 hash<sample,unsigned> h;
 
-int rnum;
-
 int  
 main (int argc, char* argv[]){
   int i,j,k;
-  //int rnum;
+  int rnum;
   unsigned key;
   sample *s;
 
@@ -114,48 +111,48 @@ main (int argc, char* argv[]){
   void *thread_start_routine(void *pthreadId)
   {
 
-	int i,j,k;
-	//int rnum;
-	unsigned key;
-	sample *s;
-	
-	long ptId;
-	ptId = (long)pthreadId;
-	printf("Thread %ld created\n", ptId);
-	while(1)
-	{
-		// process streams starting with different initial numbers
-		for (i=(NUM_SEED_STREAMS/num_threads)*ptId; i<(NUM_SEED_STREAMS/num_threads)*(ptId+1); i++)
-		{
-			rnum = i;
-			
-			// collect a number of samples
-			for (j=0; j<SAMPLES_TO_COLLECT; j++)
-			{
-				// skip a number of samples
-				for (k=0; k<samples_to_skip; k++)
-				{
-					rnum = rand_r((unsigned int*)&rnum);
-				}
-				
-				// force the sample to be within the range of 0..RAND_NUM_UPPER_BOUND-1
-				key = rnum % RAND_NUM_UPPER_BOUND;
-				
-				// if this sample has not been counted before
-				pthread_mutex_lock(&global_lock);
-				if (!(s = h.lookup(key)))
-				{
-					// insert a new element for it into the hash table
-					s = new sample(key);
-					h.insert(s);
-				}
-				pthread_mutex_unlock(&global_lock);
-				// increment the count for the sample
-				s->count++;
-			}
-		}
-	}
+  	    int i,j,k;
+            int rnum;
+            unsigned key;
+            sample *s;
 
-        //caso queira otimizar, fazer as threads perem processos alternados
+	    long ptId;
+	    ptId = (long)pthreadId;
+	    printf("Thread %ld created\n", ptId);
+
+
+	   while(1){
+
+		 	  // process streams starting with different initial numbers
+			  for (i=(NUM_SEED_STREAMS/num_threads)*ptId; i<(NUM_SEED_STREAMS/num_threads)*(ptId+1); i++){
+			    rnum = i;
+
+				    // collect a number of samples
+				    for (j=0; j<SAMPLES_TO_COLLECT; j++){
+
+					      // skip a number of samples
+					      for (k=0; k<samples_to_skip; k++){
+						rnum = rand_r((unsigned int*)&rnum);
+					      }
+
+					      // force the sample to be within the range of 0..RAND_NUM_UPPER_BOUND-1
+					      key = rnum % RAND_NUM_UPPER_BOUND;
+
+					      // if this sample has not been counted before
+					      if (!(s = h.lookup(key))){
+	
+						// insert a new element for it into the hash table
+						s = new sample(key);
+						h.insert(s);
+					      }
+
+					      // increment the count for the sample
+					      s->count++;
+				    }
+
+               		 }
+	     }
+
+        //caso queira otimizar, fa;a as threads pegando os processos em alternado
 
   } 
