@@ -142,17 +142,18 @@ void *thread_start_routine(void *pthreadId)
 			key = rnum % RAND_NUM_UPPER_BOUND;
 			
 			// if this sample has not been counted before
+			pthread_mutex_lock(&global_lock);
 			if (!(s = h.lookup(key)))
 			{
 				// insert a new element for it into the hash table
 				s = new sample(key);
-				pthread_mutex_lock(&global_lock);
+				//pthread_mutex_lock(&global_lock);
 				h.insert(s);
-				pthread_mutex_unlock(&global_lock);
+				//pthread_mutex_unlock(&global_lock);
 			}
-			
 			// increment the count for the sample
 			s->count++;
+			pthread_mutex_unlock(&global_lock);
 		}
 	}
         //caso queira otimizar, fa;a as threads pegando os processos em alternado

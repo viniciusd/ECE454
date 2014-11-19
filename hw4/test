@@ -1,7 +1,21 @@
 #!/bin/bash
 
-make clean
-make
-./randtrack 1 50 > rt2.out
-sort -n rt2.out > rt2.outs
-
+if [[ $# -ne 3 ]]; then
+	echo "Script is not being used properly";
+	echo "How to use it:"
+	echo "bash test num_threads samples_to_skip output_file"
+	echo "Ex:"
+	echo "bash test 1 50 rt2.out"
+else
+	echo "Cleaning last compilation..."
+	make clean
+	echo "Let's compile it!"
+	make
+	echo "Running our file.."
+	./randtrack $1 $2 > $3
+	echo "Now, let's sort the output"
+	sort -n $3 > $3"s"
+	echo "And the difference between our output and the original one is..."
+	diff rt1.outs $3"s"
+	echo "This script is not testing if each command works, be critical and realize when you have some unexpected output."
+fi
