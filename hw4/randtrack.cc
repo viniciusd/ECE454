@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 #include "defs.h"
 #include "hash.h"
@@ -24,6 +25,8 @@ team_t team = {
     "1001879880",                           /* Second member student number */
     "vinicius.dantasdelimamelo@mail.utoronto.ca"                            /* Second member email address */
 };
+
+void *thread_start_routine(void *pthreadId);
 
 unsigned num_threads;
 unsigned samples_to_skip;
@@ -77,7 +80,6 @@ main (int argc, char* argv[]){
   // initialize a 16K-entry (2**14) hash of empty lists
   h.setup(14);
  
-  /*
   if(num_threads>0){
 
                  pthread_t pool_wkthreads[num_threads];
@@ -88,6 +90,8 @@ main (int argc, char* argv[]){
                 for(i=0; i< (num_threads); i++){
 
                     printf("creating thread %ld\n", i);
+
+
                     tc = pthread_create(&pool_wkthreads[i], NULL,thread_start_routine, (void *)i);
 
                     if (tc){
@@ -96,67 +100,59 @@ main (int argc, char* argv[]){
                     }
                }
 
-  }*/
-
-  // process streams starting with different initial numbers
-  for (i=0; i<NUM_SEED_STREAMS; i++){
-    rnum = i;
-
-    // collect a number of samples
-    for (j=0; j<SAMPLES_TO_COLLECT; j++){
-
-      // skip a number of samples
-      for (k=0; k<samples_to_skip; k++){
-	rnum = rand_r((unsigned int*)&rnum);
-      }
-
-      // force the sample to be within the range of 0..RAND_NUM_UPPER_BOUND-1
-      key = rnum % RAND_NUM_UPPER_BOUND;
-
-      // if this sample has not been counted before
-      if (!(s = h.lookup(key))){
-	
-	// insert a new element for it into the hash table
-	s = new sample(key);
-	h.insert(s);
-      }
-
-      // increment the count for the sample
-      s->count++;
-    }
   }
 
   // print a list of the frequency of all samples
   h.print();
+
 }
 
-/*
+
   void *thread_start_routine(void *pthreadId)
   {
-    // long ptId;
-    // ptId = (long)pthreadId;
-    // printf("Thread %ld created\n", ptId);
 
-     while(1){
+  	    int i,j,k;
+            int rnum;
+            unsigned key;
+            sample *s;
 
-  	   pthread_mutex_lock(&mutex_aux);
+	    long ptId;
+	    ptId = (long)pthreadId;
+	    printf("Thread %ld created\n", ptId);
 
-  	   while (aux_count == 0) { //meaning that I don`t have nothing in the buffer
-  	       pthread_cond_wait(&notempty,&mutex_aux); // it should wait until is not empty( producer produced something)
-  	   }
 
-  	   int temp =  buffer[out];
+	   while(1){
 
-  	   if (aux_count <= sv->max_requests){
-   		   pthread_cond_signal(&notfull); //wake up producer to add more requests in the buffer
-  	   }
-             out = (out +1)% sv->max_requests;
+		 	  // process streams starting with different initial numbers
+			  for (i=(NUM_SEED_STREAMS/num_threads)*ptId; i<(NUM_SEED_STREAMS/num_threads)*(ptId+1); i++){
+			    rnum = i;
 
-             aux_count--;
-  	   pthread_mutex_unlock(&mutex_aux);
-            do_server_request(sv, temp);
+				    // collect a number of samples
+				    for (j=0; j<SAMPLES_TO_COLLECT; j++){
 
-     }
+					      // skip a number of samples
+					      for (k=0; k<samples_to_skip; k++){
+						rnum = rand_r((unsigned int*)&rnum);
+					      }
 
-     //pthread_exit(NULL);
-  } */
+					      // force the sample to be within the range of 0..RAND_NUM_UPPER_BOUND-1
+					      key = rnum % RAND_NUM_UPPER_BOUND;
+
+					      // if this sample has not been counted before
+					      if (!(s = h.lookup(key))){
+	
+						// insert a new element for it into the hash table
+						s = new sample(key);
+						h.insert(s);
+					      }
+
+					      // increment the count for the sample
+					      s->count++;
+				    }
+
+               		 }
+	     }
+
+        //caso queira otimizar, fa;a as threads pegando os processos em alternado
+
+  } 
