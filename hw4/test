@@ -1,0 +1,7 @@
+#!/bin/bash
+
+make clean
+make
+./randtrack 1 50 > rt2.out
+sort -n rt2.out > rt2.outs
+
