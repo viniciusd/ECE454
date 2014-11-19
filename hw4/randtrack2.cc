@@ -108,51 +108,54 @@ main (int argc, char* argv[]){
 }
 
 
-  void *thread_start_routine(void *pthreadId)
-  {
+void *thread_start_routine(void *pthreadId)
+{
 
-  	    int i,j,k;
-            int rnum;
-            unsigned key;
-            sample *s;
-
-	    long ptId;
-	    ptId = (long)pthreadId;
-	    printf("Thread %ld created\n", ptId);
-
-
-	   while(1){
-
-		 	  // process streams starting with different initial numbers
-			  for (i=(NUM_SEED_STREAMS/num_threads)*ptId; i<(NUM_SEED_STREAMS/num_threads)*(ptId+1); i++){
-			    rnum = i;
-
-				    // collect a number of samples
-				    for (j=0; j<SAMPLES_TO_COLLECT; j++){
-
-					      // skip a number of samples
-					      for (k=0; k<samples_to_skip; k++){
-						rnum = rand_r((unsigned int*)&rnum);
-					      }
-
-					      // force the sample to be within the range of 0..RAND_NUM_UPPER_BOUND-1
-					      key = rnum % RAND_NUM_UPPER_BOUND;
-
-					      // if this sample has not been counted before
-					      if (!(s = h.lookup(key))){
+	int i,j,k;
+	int rnum;
+	unsigned key;
+	sample *s;
 	
-						// insert a new element for it into the hash table
-						s = new sample(key);
-						h.insert(s);
-					      }
-
-					      // increment the count for the sample
-					      s->count++;
-				    }
-
-               		 }
-	     }
+	long ptId;
+	ptId = (long)pthreadId;
+	printf("Thread %ld created\n", ptId);
+	
+	while(1)
+	{
+	
+		// process streams starting with different initial numbers
+		for (i=(NUM_SEED_STREAMS/num_threads)*ptId; i<(NUM_SEED_STREAMS/num_threads)*(ptId+1); i++)
+		{
+		
+			// process streams starting with different initial numbers
+  //for (i=0; i<NUM_SEED_STREAMS; i++){
+			rnum = i;
+			
+			// collect a number of samples
+			for (j=0; j<SAMPLES_TO_COLLECT; j++)
+			{
+				// skip a number of samples
+				for (k=0; k<samples_to_skip; k++)
+				{
+					rnum = rand_r((unsigned int*)&rnum);
+				}
+				
+				// force the sample to be within the range of 0..RAND_NUM_UPPER_BOUND-1
+				key = rnum % RAND_NUM_UPPER_BOUND;
+				
+				// if this sample has not been counted before
+				if (!(s = h.lookup(key)))
+				{
+					// insert a new element for it into the hash table
+					s = new sample(key);
+					h.insert(s);
+				}
+				
+				// increment the count for the sample
+				s->count++;
+			}
+		}
+	}
 
         //caso queira otimizar, fa;a as threads pegando os processos em alternado
-
-  } 
+} 
