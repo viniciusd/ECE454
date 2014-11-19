@@ -26,8 +26,7 @@ team_t team = {
 	"vinicius.dantasdelimamelo@mail.utoronto.ca"                            /* Second member email address */
 };
 
-void *thread_start_routine(void *pthreadId);
-pthread_mutex_t global_lock = PTHREAD_MUTEX_INITIALIZER;
+void *thread_start_routine(void *pthreadId); 
 
 unsigned num_threads;
 unsigned samples_to_skip;
@@ -142,16 +141,17 @@ void *thread_start_routine(void *pthreadId)
 			key = rnum % RAND_NUM_UPPER_BOUND;
 			
 			// if this sample has not been counted before
-			pthread_mutex_lock(&global_lock);
-			if (!(s = h.lookup(key)))
+			__transaction_atomic
 			{
-				// insert a new element for it into the hash table
-				s = new sample(key);
-				h.insert(s);
-			}
-			// increment the count for the sample
-			s->count++;
-			pthread_mutex_unlock(&global_lock);
+				if (!(s = h.lookup(key)))
+				{
+					// insert a new element for it into the hash table
+					s = new sample(key);
+					h.insert(s);
+				}
+				// increment the count for the sample
+				s->count++;
+			}	
 		}
 	}
         //caso queira otimizar, fa;a as threads pegando os processos em alternado
