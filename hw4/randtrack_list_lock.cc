@@ -26,14 +26,14 @@ team_t team = {
 	"vinicius.dantasdelimamelo@mail.utoronto.ca"                            /* Second member email address */
 };
 
-void *thread_start_routine(void *pthreadId);
-pthread_mutex_t lock1 = PTHREAD_MUTEX_INITIALIZER;
+void *thread_start_routine(void *pthreadId); 
 
-pthread_mutex_t lock2 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 unsigned num_threads;
 unsigned samples_to_skip;
 
+/*
 class sample;
 
 class sample {
@@ -47,7 +47,7 @@ class sample {
   unsigned key(){return my_key;}
   void print(FILE *f){printf("%d %d\n",my_key,count);}
 };
-
+*/
 // This instantiates an empty hash table
 // it is a C++ template, which means we define the types for
 // the element and key value here: element is "class sample" and
@@ -143,27 +143,17 @@ void *thread_start_routine(void *pthreadId)
 			// force the sample to be within the range of 0..RAND_NUM_UPPER_BOUND-1
 			key = rnum % RAND_NUM_UPPER_BOUND;
 			
+			h.lookup_and_insert_if_absent(key);	
+			/*
 			// if this sample has not been counted before
-			pthread_mutex_lock(&lock1);
-
-			s = h.lookup(key);
-
-			pthread_mutex_unlock(&lock1);
-
-			if (!s )
+			if (!(s=h.lookup(key)) )
 			{
 				// insert a new element for it into the hash table
 				s = new sample(key);
-
-				pthread_mutex_lock(&lock2);
 				h.insert(s);
-				pthread_mutex_unlock(&lock2);
-
 			}
-			// increment the count for the sample
-
-			
-			s->count++;
+			// increment the count for the sample	
+			s->count++;*/
 			
 		}
 	}

@@ -7,23 +7,6 @@
 
 #define HASH_INDEX(_addr,_size_mask) (((_addr) >> 2) & (_size_mask))
 
-class sample;
-
-const pthread_mutex_t init = PTHREAD_MUTEX_INITIALIZER;
-
-class sample {
-	unsigned my_key;
-	
-	public:
-		sample *next;
-		unsigned count;
-		
-		//sample(unsigned the_key){my_key = the_key; count = 0;};
-		sample(unsigned the_key): my_key(the_key), count(0){};
-		unsigned key(){return my_key;}
-		void print(FILE *f){printf("%d %d\n",my_key,count);}
-};
-
 template<class Ele, class Keytype> class hash;
 
 template<class Ele, class Keytype> class hash {
@@ -33,13 +16,11 @@ template<class Ele, class Keytype> class hash {
   unsigned my_size_mask;
   list<Ele,Keytype> *entries;
   list<Ele,Keytype> *get_list(unsigned the_idx);
-  pthread_mutex_t *lock;
 
  public:
   void setup(unsigned the_size_log=5);
   void insert(Ele *e);
   Ele *lookup(Keytype the_key);
-  void lookup_and_insert_if_absent(Keytype the_kew);
   void print(FILE *f=stdout);
   void reset();
   void cleanup();
@@ -48,13 +29,6 @@ template<class Ele, class Keytype> class hash {
 template<class Ele, class Keytype> 
 void 
 hash<Ele,Keytype>::setup(unsigned the_size_log){
-  int i;
-  lock = new pthread_mutex_t[16000];
-  for (i = 0; i < 16000; ++i)
-  {
-  	lock[i] = init;
-  	//lock[i] = PTHREAD_MUTEX_INITIALIZER;
-  }
   my_size_log = the_size_log;
   my_size = 1 << my_size_log;
   my_size_mask = (1 << my_size_log) - 1;
@@ -80,23 +54,6 @@ hash<Ele,Keytype>::lookup(Keytype the_key){
   return l->lookup(the_key);
 }  
 
-template<class Ele, class Keytype>
-void hash<Ele, Keytype>::lookup_and_insert_if_absent(Keytype the_key)
-{
-	list<Ele, Keytype> *l;
-	sample *s;
-	const int i = HASH_INDEX(the_key, my_size_mask);
-	l = &entries[i];
-	pthread_mutex_lock(&lock[i]);
-	if (! (s = l->lookup(the_key)))
-	{
-		s = new sample(the_key);
-		entries[i].push(s);
-	}
-	s->count++;
-	pthread_mutex_unlock(&lock[i]);
-}
-
 template<class Ele, class Keytype> 
 void 
 hash<Ele,Keytype>::print(FILE *f){
@@ -120,10 +77,8 @@ template<class Ele, class Keytype>
 void 
 hash<Ele,Keytype>::cleanup(){
   unsigned i;
-
   reset();
   delete [] entries;
-  delete [] lock;
 }
 
 template<class Ele, class Keytype> 
