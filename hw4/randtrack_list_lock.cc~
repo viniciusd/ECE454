@@ -31,6 +31,8 @@ pthread_mutex_t lock1 = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_mutex_t lock2 = PTHREAD_MUTEX_INITIALIZER;
 
+pthread_mutex_t lock3 = PTHREAD_MUTEX_INITIALIZER;
+
 unsigned num_threads;
 unsigned samples_to_skip;
 
