@@ -4,11 +4,7 @@
 #include <pthread.h>
 
 #include "defs.h"
-#if !defined(LIST_LOCK)
 #include "hash.h"
-#else
-#include "hash2.h"
-#endif
 
 #define SAMPLES_TO_COLLECT   10000000
 #define RAND_NUM_UPPER_BOUND   100000
@@ -30,19 +26,11 @@ team_t team = {
 	"vinicius.dantasdelimamelo@mail.utoronto.ca"                            /* Second member email address */
 };
 
-#if defined(GLOBAL_LOCK) || defined(LIST_LOCK)
-void *thread_start_routine(void *pthreadId);
-#endif
-
-#ifdef GLOBAL_LOCK
-const pthread_mutex_t init = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t global_lock = init;
-#endif
+void *thread_start_routine(void *pthreadId); 
 
 unsigned num_threads;
 unsigned samples_to_skip;
 
-#if !defined(LIST_LOCK)
 class sample;
 
 class sample {
@@ -56,7 +44,6 @@ class sample {
   unsigned key(){return my_key;}
   void print(FILE *f){printf("%d %d\n",my_key,count);}
 };
-#endif
 
 // This instantiates an empty hash table
 // it is a C++ template, which means we define the types for
@@ -66,12 +53,10 @@ hash<sample,unsigned> h;
 
 int main (int argc, char* argv[])
 {
-	#if !defined(GLOBAL_LOCK) && !defined(LIST_LOCK)
-	int i,j,k;
+	/*int i,j,k;
 	int rnum;
 	unsigned key;
-	sample *s;
-	#endif
+	sample *s;*/
 	
 	// Print out team information
 	printf( "Team Name: %s\n", team.team );
@@ -96,8 +81,7 @@ int main (int argc, char* argv[])
 	
 	// initialize a 16K-entry (2**14) hash of empty lists
 	h.setup(14);
-
-	#if defined(GLOBAL_LOCK) || defined(LIST_LOCK)
+	
 	if(num_threads>0)
 	{
 		pthread_t pool_wkthreads[num_threads];
@@ -106,6 +90,7 @@ int main (int argc, char* argv[])
 		
 		for(i=0; i< (num_threads); i++)
 		{
+			printf("creating thread %ld\n", i);
 			tc = pthread_create(&pool_wkthreads[i], NULL,thread_start_routine, (void *)i);
 			if (tc)
 			{
@@ -118,39 +103,11 @@ int main (int argc, char* argv[])
 			pthread_join( pool_wkthreads[i], NULL);
 		}
 		// print a list of the frequency of all samples
+		h.print();
 	}
-	#else
-	for (i=0; i<NUM_SEED_STREAMS; i++)
-	{
-		rnum = i;
-		
-		// collect a number of samples
-		for (j=0; j<SAMPLES_TO_COLLECT; j++)
-		{
-			// skip a number of samples
-			for (k=0; k<samples_to_skip; k++)
-			{
-				rnum = rand_r((unsigned int*)&rnum);
-			}
-
-			// force the sample to be within the range of 0..RAND_NUM_UPPER_BOUND-1
-			key = rnum % RAND_NUM_UPPER_BOUND;
-			// if this sample has not been counted before
-			if (!(s = h.lookup(key)))
-			{
-				// insert a new element for it into the hash table
-				s = new sample(key);
-				h.insert(s);
-			}
-			// increment the count for the sample
-			s->count++;
-		}
-	}
-	#endif
-	h.print();
 }
 
-#ifdef GLOBAL_LOCK
+
 void *thread_start_routine(void *pthreadId)
 {
 
@@ -161,7 +118,7 @@ void *thread_start_routine(void *pthreadId)
 	
 	long ptId;
 	ptId = (long)pthreadId;
-	//printf("Thread #%ld created\n", ptId);
+	printf("Thread %ld created\n", ptId);
 	
 	// process streams starting with different initial numbers
 	for (i=(NUM_SEED_STREAMS/num_threads)*ptId; i<(NUM_SEED_STREAMS/num_threads)*(ptId+1); i++)
@@ -184,7 +141,6 @@ void *thread_start_routine(void *pthreadId)
 			key = rnum % RAND_NUM_UPPER_BOUND;
 			
 			// if this sample has not been counted before
-			pthread_mutex_lock(&global_lock);
 			if (!(s = h.lookup(key)))
 			{
 				// insert a new element for it into the hash table
@@ -193,45 +149,7 @@ void *thread_start_routine(void *pthreadId)
 			}
 			// increment the count for the sample
 			s->count++;
-			pthread_mutex_unlock(&global_lock);
 		}
 	}
         //caso queira otimizar, fa;a as threads pegando os processos em alternado
-}
-#elif defined(LIST_LOCK)
-void *thread_start_routine(void *pthreadId)
-{
-	int i,j,k;
-	int rnum;
-	unsigned key;
-	sample *s;
-	
-	long ptId;
-	ptId = (long)pthreadId;
-	//printf("Thread #%ld created\n", ptId);
-	
-	// process streams starting with different initial numbers
-	for (i=(NUM_SEED_STREAMS/num_threads)*ptId; i<(NUM_SEED_STREAMS/num_threads)*(ptId+1); i++)
-	{
-	
-		// process streams starting with different initial numbers
-//for (i=0; i<NUM_SEED_STREAMS; i++){
-		rnum = i;
-		
-		// collect a number of samples
-		for (j=0; j<SAMPLES_TO_COLLECT; j++)
-		{
-			// skip a number of samples
-			for (k=0; k<samples_to_skip; k++)
-			{
-				rnum = rand_r((unsigned int*)&rnum);
-			}
-			
-			// force the sample to be within the range of 0..RAND_NUM_UPPER_BOUND-1
-			key = rnum % RAND_NUM_UPPER_BOUND;
-			h.lookup_and_insert_if_absent(key);			
-		}
-	}
-        //caso queira otimizar, fa;a as threads pegando os processos em alternado
-}
-#endif
+} 
