@@ -72,28 +72,6 @@ void rotate(int dim, pixel *src, pixel *dst)
                 }
         }
 }
-
-char rotate_tryhard_descr[] = "rotate: tryhard working version";
-#define l1_lines 8 
-void rotate_tryhard(int dim, pixel *src, pixel *dst)
-{
-
-    const int step = min(128, dim);
-
-    int offx, offy, i, j;
-    for (offx = 0; offx < dim; offx += step)
-        for (offy = 0; offy < dim; offy = offy + l1_lines){
-            const int maxJ = min(step, dim - offx);
-            const int maxI = min(l1_lines, dim - offy);
-            const pixel* baseSrc = src + offy * dim + offx;
-            pixel* baseDst = dst + (dim - offx - 1) * dim + offy;
-            for(j = 0; j < maxJ; ++j){
-                   for(i = 0; i < maxI; ++i)
-                    baseDst[i - j * dim] = baseSrc[j + i * dim];
-            }
-        }
-}
-
 /* 
  * Second attempt: Inversed order
 */
@@ -185,6 +163,8 @@ void attempt_five(int dim, pixel *src, pixel *dst)
                 }
         }
 }
+
+
 /*********************************************************************
  * register_rotate_functions - Register all of your different versions
  *     of the rotate kernel with the driver by calling the
@@ -198,11 +178,10 @@ void register_rotate_functions()
     add_rotate_function(&naive_rotate, naive_rotate_descr);   
     add_rotate_function(&rotate, rotate_descr);   
 
-    //add_rotate_function(&attempt_two, rotate_two_descr);   
-    //add_rotate_function(&attempt_three, rotate_three_descr);   
-    //add_rotate_function(&attempt_four, rotate_four_descr);   
-    //add_rotate_function(&attempt_five, rotate_five_descr);
-    add_rotate_function(&rotate_tryhard, rotate_tryhard_descr);   
+    add_rotate_function(&attempt_two, rotate_two_descr);   
+    add_rotate_function(&attempt_three, rotate_three_descr);   
+    add_rotate_function(&attempt_four, rotate_four_descr);   
+    add_rotate_function(&attempt_five, rotate_five_descr);   
     //add_rotate_function(&attempt_six, rotate_six_descr);   
     //add_rotate_function(&attempt_seven, rotate_seven_descr);   
     //add_rotate_function(&attempt_eight, rotate_eight_descr);   
