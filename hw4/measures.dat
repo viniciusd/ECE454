@@ -1,0 +1,51 @@
+randtrack_global_lock
+        * Running skipping 50 samples        
+               -> Number of threads running: 1              
+               -> Number of threads running: 2              
+               -> Number of threads running: 4              
+        * Running skipping 100 samples       
+               -> Number of threads running: 1              
+               -> Number of threads running: 2              
+               -> Number of threads running: 4              
+randtrack_tm
+        * Running skipping 50 samples        
+               -> Number of threads running: 1              
+               -> Number of threads running: 2              
+               -> Number of threads running: 4              
+        * Running skipping 100 samples       
+               -> Number of threads running: 1              
+               -> Number of threads running: 2              
+               -> Number of threads running: 4              
+randtrack_list_lock
+        * Running skipping 50 samples        
+               -> Number of threads running: 1              
+               -> Number of threads running: 2              
+               -> Number of threads running: 4              
+        * Running skipping 100 samples       
+               -> Number of threads running: 1              
+               -> Number of threads running: 2              
+               -> Number of threads running: 4              
+randtrack_global_lock
+                       1 thread    2 threads     4 threads
+                     -------------------------------------
+Skipping 50 samples  |   19.42   |   14.048  |   22.12   |
+Skipping 100 samples |   36.72   |   22.292  |   18.874  |
+
+
+
+randtrack_tm
+                       1 thread    2 threads     4 threads
+                     -------------------------------------
+Skipping 50 samples  |   20.93   |   21.064  |   13.248  |
+Skipping 100 samples |   38.108  |   29.276  |   16.144  |
+
+
+
+randtrack_list_lock
+                       1 thread    2 threads     4 threads
+                     -------------------------------------
+Skipping 50 samples  |   19.612  |   10.57   |    6.9    |
+Skipping 100 samples |   36.62   |   19.066  |   11.006  |
+
+
+
