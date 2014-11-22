@@ -34,7 +34,11 @@ for m, exe in enumerate(versions):
 				# Great! It is timed! Let us store the time
 				l.append(float(output.split('\n')[-1]))
 			results[m].append(np.mean(np.array(l)))
-for i, v in enumerate(versions):
+else: # It is over, let us wipe out our versions
+	FNULL = open(os.devnull, 'w')
+	sub.call("make clean", shell=True, stdout=FNULL, stderr=sub.STDOUT
+	FNULL.close()
+for i, v in enumerate(versions): # Now, it is time to print it out!
 	print(v)
 	print("1 thread    2 threads     4 threads".rjust(22+3*spaces+3))
 	print("-------------------------------------".rjust(22+3*spaces+3))
