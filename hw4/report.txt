@@ -1,0 +1,30 @@
+Q1. #ifdefing datastructures from other versions avoid conflicts among the structrures, which could cause errors. In addition, do not declaring ununsed strucutres avoids memory wasting.
+
+Q2. Both TM and global lock are really similar. However, TM is easier than global lock, since it do not need either extra declarations or libraries.
+
+Q3. No, it is not possible to implement the list-level lock with no knowledge about the hash structure.
+
+Q4. No, it is not possible to implement properly the list-level lock solely by modifying the hash class methods lookup and insert, this would not avoid duplicate insertions at the hash table.
+
+Q5. Yes, it is clearly possible to implement the list-level lock adding  to the hash class a new function named lookup_and_insert_if_absent. This way, we may have an atomic instruction, avoiding duplicate entries.
+
+Q6. Adding functions lock_list and unlock_list would be similar to what whas made at Q5, the difference is that these methods could be accessed by external instructions, while our internal locks are private.
+
+Q7. TM was easier than implementing list-level lock because TM do not need a lot of reasoning about the code, while it works as a "gross lock".
+
+Q8. While adding a duplicate of the hash table makes the code independent of modifications at the main hash table, it consumes more memory.
+
+Q9. 
+
+Q10.
+
+Q11.
++--------+-----+-------+
+| 
+
+
+Q12. The element-lock lok version should be shipped  because it has higher scalability, according to what was observed.
+
+
+Original time with 50 samples to skip: 17.692s
+Global Lock 50: 23.026

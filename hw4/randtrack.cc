@@ -30,7 +30,7 @@ team_t team = {
 	"vinicius.dantasdelimamelo@mail.utoronto.ca"                            /* Second member email address */
 };
 
-#if defined(GLOBAL_LOCK) || defined(LIST_LOCK)
+#if defined(GLOBAL_LOCK) || defined(LIST_LOCK) || defined(TRANSACTIONAL_MEMORY)
 void *thread_start_routine(void *pthreadId);
 #endif
 
@@ -66,7 +66,7 @@ hash<sample,unsigned> h;
 
 int main (int argc, char* argv[])
 {
-	#if !defined(GLOBAL_LOCK) && !defined(LIST_LOCK)
+	#if !defined(GLOBAL_LOCK) && !defined(LIST_LOCK) && !defined(TRANSACTIONAL_MEMORY)
 	int i,j,k;
 	int rnum;
 	unsigned key;
@@ -97,7 +97,7 @@ int main (int argc, char* argv[])
 	// initialize a 16K-entry (2**14) hash of empty lists
 	h.setup(14);
 
-	#if defined(GLOBAL_LOCK) || defined(LIST_LOCK)
+	#if defined(GLOBAL_LOCK) || defined(LIST_LOCK) || defined(TRANSACTIONAL_MEMORY)
 	if(num_threads>0)
 	{
 		pthread_t pool_wkthreads[num_threads];
@@ -233,5 +233,47 @@ void *thread_start_routine(void *pthreadId)
 		}
 	}
         //caso queira otimizar, fa;a as threads pegando os processos em alternado
+}
+#elif defined(TRANSACTIONAL_MEMORY)
+void *thread_start_routine(void *pthreadId)
+{
+	int i, j, k;
+	int rnum;
+	unsigned key;
+	sample *s;
+	
+	long ptId;
+	ptId = (long)pthreadId;
+	//printf("Thread %ld created\n", ptId);
+	
+	// process streams starting with different initial numbers
+	for (i=(NUM_SEED_STREAMS/num_threads)*ptId; i<(NUM_SEED_STREAMS/num_threads)*(    ptId+1); i++)
+	{
+		rnum = i;
+		
+		// collect a number of samples
+		for (j=0; j<SAMPLES_TO_COLLECT; j++)
+		{
+			// skip a number of samples
+			for (k=0; k<samples_to_skip; k++)
+			{
+				rnum = rand_r((unsigned int*)&rnum);
+			}
+			// force the sample to be within the range of 0..RAND_NUM_UPPE    R_BOUND-1
+			key = rnum % RAND_NUM_UPPER_BOUND;
+			// if this sample has not been counted before
+			__transaction_atomic
+			{
+				if (!(s = h.lookup(key)))
+				{
+					// insert a new element for it into the hash t    able
+					s = new sample(key);
+					h.insert(s);
+				}
+				// increment the count for the sample
+				s->count++;
+			}
+		}
+	}
 }
 #endif

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# This script compile the serial version of the randtrack.
+# TODO: Add option to specify the version
 if [[ $# -ne 3 ]]; then
 	echo "Script is not being used properly";
 	echo "How to use it:"
@@ -7,10 +9,10 @@ if [[ $# -ne 3 ]]; then
 	echo "Ex:"
 	echo "bash test 1 50 rt2.out"
 else
-	#echo "Cleaning last compilation..."
-	#make clean
-	#echo "Let's compile it!"
-	#make
+	echo "Cleaning last compilation..."
+	make clean
+	echo "Let's compile it!"
+	make
 	echo "Running our file.."
 	./randtrack $1 $2 > $3
 	echo "Now, let's sort the output"
