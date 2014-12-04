@@ -21,6 +21,8 @@ typedef struct {
 } arguments;
 
 
+pthread_mutex_t global_lock = PTHREAD_MUTEX_INITIALIZER;
+
 /*****************************************************************************
  * Helper function definitions
  ****************************************************************************/
@@ -132,6 +134,7 @@ char* sequential_game_of_life (char* outboard,
 		*(args->lock) = init;
 		for(i=0; i< THREADS; ++i)
 		{
+			pthread_mutex_lock(&global_lock);
 			args->i = i;
 			tc = pthread_create(&pool_wkthreads[i], NULL,thread_start_routine, (void *)args);
 			if (tc)
@@ -168,15 +171,12 @@ void *thread_start_routine(void *myargs)
 	pthread_mutex_t *lock = args->lock;
 	int curgen, i, j;
 	char neighbor_count;
+	pthread_mutex_unlock(&global_lock);
 	for (curgen = 0; curgen < gens_max; curgen++, outboard -= nrows*ncols)
 	{
 		if (id == 0)
 		{
 			memcpy(outboard, inboard, nrows*ncols);
-			if (curgen)
-			{
-				pthread_barrier_init(barrier, NULL, THREADS);
-			}
 		}
 		outboard +=(nrows/THREADS)*(id*ncols);
 		for (i = id*(nrows/THREADS); i < (id+1)*(nrows/THREADS); ++i)
