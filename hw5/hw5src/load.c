@@ -3,6 +3,23 @@
 #include <assert.h>
 #include <stdlib.h>
 
+void birth(char *mycell, int i, int j, int nrows, int ncols)
+{
+	const int up = (i==0) ? ncols*(nrows-1) : -ncols,
+		down = (i==(nrows-1)) ? ncols*(1-nrows) : ncols,
+		left = (j == 0) ? ncols-1 : -1,
+		right = (j==(nrows-1)) ? 1-ncols : 1;
+	*(mycell + up + left) += 2;
+	*(mycell + up) += 2;
+	*(mycell + up + right) += 2;
+	*(mycell + left) += 2;
+	*(mycell) |= 0x01;
+	*(mycell + right) += 2;
+	*(mycell + down + left) += 2;
+	*(mycell + down) += 2;
+	*(mycell + down + right) += 2;
+}
+
 char*
 make_board (const int nrows, const int ncols)
 {
@@ -71,7 +88,7 @@ load_board_values (FILE* input, const int nrows, const int ncols)
 		/* If it is a live cell, let us broadcast it to its neighbor cells*/	
 			if(entry == '1')
 			{
-				spawn(&board[i], i/ncols,i%ncols, nrows, ncols);
+				birth(&board[i], i/ncols,i%ncols, nrows, ncols);
 			}
 		}
 
