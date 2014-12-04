@@ -1,4 +1,5 @@
 #include "load.h"
+#include "life.h"
 #include <assert.h>
 #include <stdlib.h>
 
@@ -10,10 +11,10 @@ make_board (const int nrows, const int ncols)
 
   /* Allocate the board and fill in with 'Z' (instead of a number, so
      that it's easy to diagnose bugs */
-  board = malloc (2 * nrows * ncols * sizeof (char));
+  board = malloc (nrows * ncols * sizeof (char));
   assert (board != NULL);
   for (i = 0; i < nrows * ncols; i++)
-    board[i] = 'Z';
+    board[i] = 0;
 
   return board;
 }
@@ -47,28 +48,34 @@ load_dimensions (FILE* input, int* nrows, int* ncols)
 static char*
 load_board_values (FILE* input, const int nrows, const int ncols)
 {
-  char* board = NULL;
-  int ngotten = 0;
-  int i = 0;
-
-  /* Make a new board */
-  board = make_board (nrows, ncols);
-
-  /* Fill in the board with values from the input file */
-  for (i = 0; i < nrows * ncols; i++)
-    {
-      ngotten = fscanf (input, "%c\n", &board[i]);
-      if (ngotten < 1)
+	char* board = NULL;
+	char entry;
+	int ngotten = 0;
+	int i = 0;
+	
+	/* Make a new board */
+	board = make_board (nrows, ncols);
+	
+	/* Fill in the board with values from the input file */
+	for (i = 0; i < nrows * ncols; i++)
 	{
-	  fprintf (stderr, "*** Ran out of input at item %d ***\n", i);
-	  fclose (input);
-	  exit (EXIT_FAILURE);
-	}
-      else
-	/* ASCII '0' is not zero; do the conversion */
-	board[i] = board[i] - '0';
-    }
+		ngotten = fscanf (input, "%c\n", &entry);
+		if (ngotten < 1)
+		{
+			fprintf (stderr, "*** Ran out of input at item %d ***\n", i);
+			fclose (input);
+			exit (EXIT_FAILURE);
+		}
+		else
+		{
+		/* If it is a live cell, let us broadcast it to its neighbor cells*/	
+			if(entry == '1')
+			{
+				spawn(&board[i], i/ncols,i%ncols, nrows, ncols);
+			}
+		}
 
+	}	
   return board;
 }
 

@@ -1,0 +1,7 @@
+#!/bin/zsh
+make clean
+make
+#./gol 10000 inputs/1k.pbm 1k.pbm
+#./gol 1 test.pbm testo.pbm
+time ./gol 10000 inputs/1k.pbm 1k.pbm
+diff 1k.pbm outputs/1k_verify_out.pbm | wc

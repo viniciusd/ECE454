@@ -68,6 +68,7 @@ main (int argc, char* argv[])
    * Set verifyp to 1 if you want to turn on verification.
    */
   const int verifyp = DO_VERIFY;
+  //const int verifyp = 0;
   const int argc_min = 3;
   const int argc_max = 4;
 
@@ -80,8 +81,7 @@ main (int argc, char* argv[])
   int ncols = 0;
   FILE* input = NULL;
   FILE* output = NULL;
-  int err = 0;
-
+  int err = 0;	
   /* Parse command-line arguments */
   if (argc < argc_min || argc > argc_max)
     {

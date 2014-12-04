@@ -25,7 +25,7 @@ save_board_values (FILE* output, const char board[], const int nrows, const int 
   for (i = 0; i < nrows * ncols; i++)
     {
       /* ASCII '0' is not zero; do the conversion */
-      err = fprintf (output, "%c\n", board[i] + '0');
+      err = fprintf (output, "%c\n", (board[i]&0x01) + '0');
       if (err < 0)
 	{
 	  fprintf (stderr, "*** Failed to write board item %d ***\n", i);

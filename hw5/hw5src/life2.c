@@ -10,32 +10,83 @@
  ****************************************************************************/
 void kill(char *mycell, int i, int j, int nrows, int ncols)
 {
-	const int up = (i==0) ? ncols*(nrows-1) : -ncols,
-		down = (i==(nrows-1)) ? ncols*(1-nrows) : ncols,
-		left = (j == 0) ? ncols-1 : -1,
-		right = (j==(nrows-1)) ? 1-ncols : 1;
+	int up, down, left, right;
+	if (j == 0)
+	{
+		left = ncols-1;
+	} else
+	{
+		left = -1;
+	}
+	if (i == 0)
+	{
+		up = ncols*(nrows-1);
+	} else
+	{
+		up = -ncols;
+	}
+	if (j == (nrows-1))
+	{
+		right = -(ncols-1);
+	} else
+	{
+		right = 1;
+	}
+	if (i == (nrows-1))
+	{
+		down = ncols*(1-nrows);
+	} else
+	{
+		down = ncols;
+	}
+	*(mycell) &= ~0x01;
 	*(mycell + up + left) -= 2;
 	*(mycell + up) -= 2;
 	*(mycell + up + right) -= 2;
 	*(mycell + left) -= 2;
-	*(mycell) &= ~0x01;
 	*(mycell + right) -= 2;
 	*(mycell + down + left) -= 2;
 	*(mycell + down) -= 2;
 	*(mycell + down + right) -= 2;
 }
 
-void spawn(char *mycell, int i, int j, int nrows, int ncols)
+void alive(char *mycell, int i, int j, int nrows, int ncols)
 {
-	const int up = (i==0) ? ncols*(nrows-1) : -ncols,
-		down = (i==(nrows-1)) ? ncols*(1-nrows) : ncols,
-		left = (j == 0) ? ncols-1 : -1,
-		right = (j==(nrows-1)) ? 1-ncols : 1;
+	int up, down, left, right;
+
+	if (j == 0)
+	{
+		left = ncols-1;
+	} else
+	{
+		left = -1;
+	}
+	if (i == 0)
+	{
+		up = ncols*(nrows-1);
+	} else
+	{
+		up = -ncols;
+	}
+	if (j == (nrows-1))
+	{
+		right = 1-ncols;
+	} else
+	{
+		right = 1;
+	}
+	if (i == (nrows-1))
+	{
+		down = ncols*(1-nrows);
+	} else
+	{
+		down = ncols;
+	}
+	*(mycell) |= 0x01;
 	*(mycell + up + left) += 2;
 	*(mycell + up) += 2;
 	*(mycell + up + right) += 2;
 	*(mycell + left) += 2;
-	*(mycell) |= 0x01;
 	*(mycell + right) += 2;
 	*(mycell + down + left) += 2;
 	*(mycell + down) += 2;
@@ -62,10 +113,12 @@ char* sequential_game_of_life (char* outboard,
         const int ncols,
         const int gens_max)
 {
+	//const int LDA = nrows;
 	int curgen, i, j;
+	//char *mycell;
 	char neighbor_count;
 
-	for (curgen = 0; curgen < gens_max; curgen++, outboard -= nrows*ncols)
+	for (curgen = 0; curgen < gens_max; curgen++/*, outboard -= nrows*ncols*/)
 	{
 		memcpy(outboard, inboard, nrows*ncols);
 		for (i = 0; i < nrows; i++)
@@ -73,7 +126,6 @@ char* sequential_game_of_life (char* outboard,
 			j = 0;
 			do
 			{
-				//for (; *outboard==0 && ++j < ncols; ++outboard);
 				while (*outboard==0)
 				{
 					++outboard;
@@ -87,19 +139,23 @@ char* sequential_game_of_life (char* outboard,
 					break;
 				}
 				neighbor_count = *outboard >> 1;
-				if ((*outboard&0x01) == 0)
+				if (*outboard & 0x01)
 				{
-					if(neighbor_count==3)
+					if((neighbor_count != 2) && (neighbor_count != 3))
 					{
-						spawn(BOARD(inboard, i, j), i, j, nrows, ncols);
+						kill(BOARD(inboard, i, j), i,j, nrows, ncols);
 					}
-				} else if ((neighbor_count != 2) && (neighbor_count != 3))
+				} else
 				{
-					kill(BOARD(inboard, i, j), i,j, nrows, ncols);
+					if (neighbor_count == 3)
+					{
+						alive(BOARD(inboard, i, j), i,j, nrows, ncols);
+					}
 				}
 				++outboard;
 			} while (++j < ncols);
 		}
+		outboard -= nrows*ncols;
 	}
     /* 
      * We return the output board, so that we know which one contains
