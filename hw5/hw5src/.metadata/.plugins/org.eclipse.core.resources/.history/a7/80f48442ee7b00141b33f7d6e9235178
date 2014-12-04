@@ -178,8 +178,8 @@ void *thread_start_routine(void *myargs)
 				pthread_barrier_init(barrier, NULL, THREADS);
 			}
 		}
-		outboard +=(nrows/THREADS)*(id*ncols);
-		for (i = id*(nrows/THREADS); i < (id+1)*(nrows/THREADS); ++i)
+		outboard += id*nrows/THREADS*ncols;
+		for (i = id*nrows/THREADS; i < (id+1)*nrows/THREADS; ++i)
 		{
 			j = 0;
 			do
