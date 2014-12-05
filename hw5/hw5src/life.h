@@ -4,7 +4,7 @@
 #include <pthread.h>
 
 #ifndef THREADS
-#define THREADS 1
+#define THREADS 1 
 #endif
 
 #define BOARD( __board, __i, __j )  (__board + nrows*(__i) + (__j))

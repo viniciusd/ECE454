@@ -28,10 +28,10 @@ make_board (const int nrows, const int ncols)
 
   /* Allocate the board and fill in with 'Z' (instead of a number, so
      that it's easy to diagnose bugs */
-  board = malloc (nrows * ncols * sizeof (char));
+  board = calloc (nrows * ncols * sizeof (char), sizeof(char));
   assert (board != NULL);
-  for (i = 0; i < nrows * ncols; i++)
-    board[i] = 0;
+  //for (i = 0; i < nrows * ncols; i++)
+  //  board[i] = 0;
 
   return board;
 }

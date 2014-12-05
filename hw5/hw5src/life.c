@@ -1,5 +1,5 @@
 /*****************************************************************************
- * life.c
+* life.c
  * Parallelized and optimized implementation of the game of life resides here
  ****************************************************************************/
 #include "life.h"
@@ -20,6 +20,14 @@ typedef struct {
 	pthread_mutex_t *lock;
 } arguments;
 
+/*void memcpy(char *dst, char *src, int n)
+{
+	while(n--)
+	{
+		*dst++ = *src++;
+	}
+}
+*/
 
 pthread_mutex_t global_lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -161,26 +169,28 @@ char* sequential_game_of_life (char* outboard,
 void *thread_start_routine(void *myargs)
 {
 	arguments *args = (arguments *) myargs;
+	const int id = args->i;
+	pthread_mutex_unlock(&global_lock);
 	char *inboard = args->inboard;
 	char *outboard = args->outboard;
 	const int nrows = args->nrows;
 	const int ncols = args->ncols;
 	const int gens_max = args->gens_max;	
-	const int id = args->i;
+	//const int id = args->i;
 	pthread_barrier_t *barrier = args->barrier;
 	pthread_mutex_t *lock = args->lock;
-	int curgen, i, j;
+	int curgen, i, j, k;
 	char neighbor_count;
-	pthread_mutex_unlock(&global_lock);
-	for (curgen = 0; curgen < gens_max; curgen++, outboard -= nrows*ncols)
+	for (curgen = 0; curgen < gens_max; curgen++, outboard -= nrows*ncols-1)
 	{
 		if (id == 0)
 		{
 			memcpy(outboard, inboard, nrows*ncols);
 		}
-		outboard +=(nrows/THREADS)*(id*ncols);
+		pthread_barrier_wait(barrier);
+		outboard += (nrows/THREADS)*(ncols*id);	
 		for (i = id*(nrows/THREADS); i < (id+1)*(nrows/THREADS); ++i)
-		{
+		{	
 			j = 0;
 			do
 			{
