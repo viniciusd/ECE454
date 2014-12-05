@@ -25,8 +25,8 @@ game_of_life (char* outboard,
 	      const int ncols,
 	      const int gens_max);
 
-void kill(int initial_row, char *mycell, int i, int j, int nrows, int ncols, pthread_mutex_t *lock);
-void spawn(int initial_row, char *mycell, int i, int j, int nrows, int ncols, pthread_mutex_t *lock);
+void kill(int initial_row, char *mycell, int i, int j, int nrows, int ncols, pthread_rwlock_t *lock);
+void spawn(int initial_row, char *mycell, int i, int j, int nrows, int ncols, pthread_rwlock_t *lock);
 
 /**
  * Same output as game_of_life() above, except this is not

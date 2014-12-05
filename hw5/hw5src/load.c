@@ -3,6 +3,10 @@
 #include <assert.h>
 #include <stdlib.h>
 
+/************************************************************************
+* When a live cell is loaded, it changes the number of neighbors of its
+* neighbors cells.
+************************************************************************/
 void birth(char *mycell, int i, int j, int nrows, int ncols)
 {
 	const int up = (i==0) ? ncols*(nrows-1) : -ncols,
