@@ -173,6 +173,7 @@ void *thread_start_routine(void *myargs)
 	pthread_mutex_unlock(&global_lock);
 	char *inboard = args->inboard;
 	char *outboard = args->outboard;
+	char *init = outboard;
 	const int nrows = args->nrows;
 	const int ncols = args->ncols;
 	const int gens_max = args->gens_max;	
@@ -181,7 +182,7 @@ void *thread_start_routine(void *myargs)
 	pthread_mutex_t *lock = args->lock;
 	int curgen, i, j, k;
 	char neighbor_count;
-	for (curgen = 0; curgen < gens_max; curgen++, outboard -= nrows*ncols-1)
+	for (curgen = 0; curgen < gens_max; curgen++, outboard = init)
 	{
 		if (id == 0)
 		{
@@ -189,38 +190,27 @@ void *thread_start_routine(void *myargs)
 		}
 		pthread_barrier_wait(barrier);
 		outboard += (nrows/THREADS)*(ncols*id);	
-		for (i = id*(nrows/THREADS); i < (id+1)*(nrows/THREADS); ++i)
+		for (i = (ncols*id)*(nrows/THREADS); i < (id+1)*(nrows/THREADS)*ncols; ++i)
 		{	
-			j = 0;
-			do
+			//for (; *outboard==0 && ++j < ncols; ++outboard);
+			for (; *outboard==0 && i < (id+1)*(nrows/THREADS)*ncols; ++i, ++outboard);
+			if (i >= (id+1)*(nrows/THREADS)*ncols)
 			{
-				//for (; *outboard==0 && ++j < ncols; ++outboard);
-				while (*outboard==0)
+				continue;
+			}
+			neighbor_count = *outboard >> 1;
+			if ((*outboard&0x01) == 0)
+			{
+				if(neighbor_count==3)
 				{
-					++outboard;
-					if (++j >= ncols)
-					{
-						break;
-					}
+					spawn(id*nrows/THREADS, inboard+i, i/ncols, i%ncols, nrows, ncols, lock);
 				}
-				if (j >= ncols)
-				{
-					break;
-				}
-				neighbor_count = *outboard >> 1;
-				if ((*outboard&0x01) == 0)
-				{
-					if(neighbor_count==3)
-					{
-						spawn(id*nrows/THREADS, BOARD(inboard, i, j), i, j, nrows, ncols, lock);
-					}
-				} else if ((neighbor_count != 2) && (neighbor_count != 3))
-				{
-					kill(id*nrows/THREADS, BOARD(inboard, i, j), i,j, nrows, ncols, lock);
-				}
-				++outboard;
-			} while (++j < ncols);
-			pthread_barrier_wait(barrier);
+			} else if ((neighbor_count != 2) && (neighbor_count != 3))
+			{
+				kill(id*nrows/THREADS, inboard+i, i/ncols,i%ncols, nrows, ncols, lock);
+			}
+			++outboard;
 		}
+		pthread_barrier_wait(barrier);
 	}
 }
